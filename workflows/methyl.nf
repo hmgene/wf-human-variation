@@ -16,7 +16,6 @@ process sample_probs {
     script:
     // Set `--interval-size` to 5Mb to speed up sampling, and `--only-mapped -p 0.1` to be consistent with `pileup`
     """
-    #probs=\$( modkit sample-probs ${xam} -p 0.1 --interval-size 5000000 --only-mapped --threads ${task.cpus} 2> /dev/null | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' )
     modkit sample-probs ${xam} -p 0.1 --interval-size 5000000 --only-mapped --threads ${task.cpus} \\
     | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' > probs.txt
 
