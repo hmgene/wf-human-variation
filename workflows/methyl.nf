@@ -10,8 +10,7 @@ process sample_probs {
         tuple path(xam), path(xam_index), val(meta)
         tuple path(ref), path(ref_idx), path(ref_cache), env(REF_PATH)
     output:
-        // env(probs), emit: probs
-        path "probs.txt", emit: probs
+        env(probs), emit: probs
 
     script:
     // Set `--interval-size` to 5Mb to speed up sampling, and `--only-mapped -p 0.1` to be consistent with `pileup`
