@@ -10,12 +10,16 @@ process sample_probs {
         tuple path(xam), path(xam_index), val(meta)
         tuple path(ref), path(ref_idx), path(ref_cache), env(REF_PATH)
     output:
-        env(probs), emit: probs
+        // env(probs), emit: probs
+        path "probs.txt", emit: probs
 
     script:
     // Set `--interval-size` to 5Mb to speed up sampling, and `--only-mapped -p 0.1` to be consistent with `pileup`
     """
-    probs=\$( modkit sample-probs ${xam} -p 0.1 --interval-size 5000000 --only-mapped --threads ${task.cpus} 2> /dev/null | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' )
+    #probs=\$( modkit sample-probs ${xam} -p 0.1 --interval-size 5000000 --only-mapped --threads ${task.cpus} 2> /dev/null | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' )
+    modkit sample-probs ${xam} -p 0.1 --interval-size 5000000 --only-mapped --threads ${task.cpus} \\
+    | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' > probs.txt
+
     """
 }
 
@@ -28,6 +32,7 @@ process modkit {
     input:
         tuple val(meta), path(xam), path(xai)
         tuple path(ref), path(ref_idx), path(ref_cache), env(REF_PATH)
+        path probs
         val options
     output:
         tuple val(meta), val('*'), path("${meta.alias}*bedmethyl.gz"), emit: modkit
@@ -41,9 +46,8 @@ process modkit {
         --ref ${ref} \\
         --region ${meta.sq} \\
         --log-filepath modkit.log \\
-        ${meta.probs} \\
         --bgzf \\
-        --threads ${task.cpus} ${options}
+        --threads ${task.cpus} ${probs} ${options}
     """
 }
 
