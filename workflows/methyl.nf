@@ -41,7 +41,7 @@ process modkit {
         --ref ${ref} \\
         --region ${meta.sq} \\
         --log-filepath modkit.log \\
-        ${meta.probs}
+        ${meta.probs} \\
         --bgzf \\
         --threads ${task.cpus} ${options}
     """
