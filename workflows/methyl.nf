@@ -31,7 +31,6 @@ process modkit {
     input:
         tuple val(meta), path(xam), path(xai)
         tuple path(ref), path(ref_idx), path(ref_cache), env(REF_PATH)
-        path probs
         val options
     output:
         tuple val(meta), val('*'), path("${meta.alias}*bedmethyl.gz"), emit: modkit
@@ -45,8 +44,9 @@ process modkit {
         --ref ${ref} \\
         --region ${meta.sq} \\
         --log-filepath modkit.log \\
+        ${meta.probs}
         --bgzf \\
-        --threads ${task.cpus} ${probs} ${options}
+        --threads ${task.cpus} ${options}
     """
 }
 
