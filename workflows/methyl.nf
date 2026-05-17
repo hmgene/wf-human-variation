@@ -17,8 +17,10 @@ process sample_probs {
     """
     export REF_CACHE="${ref_cache}"
     export REF_PATH="\${REF_PATH:-}:${ref}:."
+    echo "Current local REF_PATH is: \$REF_PATH"  
+
+    probs=\$( modkit sample-probs ${xam} -p 0.1 --interval-size 5000000 --only-mapped --threads ${task.cpus} 2> /dev/null | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' )
     
-    echo "Current local REF_PATH is: \$REF_PATH"  probs=\$( modkit sample-probs --reference ${ref}  -p 0.1 --interval-size 5000000 --threads ${task.cpus} ${xam} 2> /dev/null | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' )
 """
 }
 
