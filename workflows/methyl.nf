@@ -1,5 +1,5 @@
 // Pre-compute sample probabilities
-process sample_probs {
+process sample_probs_bk {
     label "wf_human_mod"
     // Using 4 threads on a 90X takes ~30sec to complete
     cpus 4
@@ -22,6 +22,59 @@ process sample_probs {
     probs=\$( modkit sample-probs ${xam} -p 0.1 --interval-size 5000000 --only-mapped --threads ${task.cpus} 2> /dev/null | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' )
     
 """
+}
+process sample_probs {
+    label "wf_human_mod"
+    cpus 4
+    memory { 15.GB * task.attempt - 1.GB }
+    maxRetries 1
+    errorStrategy {task.exitStatus in [137,140] ? 'retry' : 'finish'}
+    
+    input:
+        tuple path(xam), path(xam_index), val(meta)
+        tuple path(ref), path(ref_idx), path(ref_cache), env(REF_PATH)
+        
+    output:
+        env(probs), emit: probs
+
+    script:
+    """
+    # 1. HARD LINK THE INDEX: CRAM tools strictly require 'reference.fasta.fai'
+    # Nextflow sometimes changes the name of 'ref_idx' when downloading from Google Cloud Storage.
+    # This line guarantees the index name precisely matches the fasta file name.
+    ln -sf ${ref_idx} ${ref}.fai
+
+    # 2. Safely configure your cloud environment paths
+    export REF_CACHE="${ref_cache}"
+    export REF_PATH="\${REF_PATH:-}:${ref}:."
+    
+    echo "Current local REF_PATH is: \$REF_PATH"
+
+    # 3. Handle version changes between 0.6.1 and 0.6.2 dynamically
+    if modkit sample-probs -h 2>/dev/null | grep -q -- "--reference"; then
+        REF_FLAG="--reference ${ref}"
+    else
+        REF_FLAG=""
+    fi
+
+    # 4. Route errors to 'modkit_error.log' instead of hiding them in /dev/null
+    probs=\$( modkit sample-probs ${xam} \\
+        \$REF_FLAG \\
+        -p 0.1 \\
+        --interval-size 5000000 \\
+        --only-mapped \\
+        --threads ${task.cpus} 2> modkit_error.log \\
+        | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' )
+
+    # 5. Guardrail: If modkit crashes, print the error log directly to the Nextflow console
+    if [ -z "\$probs" ]; then
+        echo "=========================================" >&2
+        echo "MODKIT FAILED! ERROR LOG CONTENT BELOW:" >&2
+        echo "=========================================" >&2
+        cat modkit_error.log >&2
+        exit 1
+    fi
+    """
 }
 
 process modkit {
