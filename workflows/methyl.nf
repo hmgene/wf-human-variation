@@ -15,8 +15,8 @@ process sample_probs {
     script:
     // Set `--interval-size` to 5Mb to speed up sampling, and `--only-mapped -p 0.1` to be consistent with `pileup`
     """
-export REF_CACHE="${ref_cache}"
-    export REF_PATH="\$REF_PATH:${ref}:."
+    export REF_CACHE="${ref_cache}"
+    export REF_PATH="\${REF_PATH:-}:${ref}:."
     
     echo "Current local REF_PATH is: \$REF_PATH"  probs=\$( modkit sample-probs --reference ${ref}  -p 0.1 --interval-size 5000000 --threads ${task.cpus} ${xam} 2> /dev/null | awk 'NR>1 {ORS=" "; print "--filter-threshold "\$1":"\$3}' )
 """
